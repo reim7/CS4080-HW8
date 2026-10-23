@@ -1,0 +1,115 @@
+
+# Chapter 17 – Challenge 3: Ternary Conditional Operator
+
+## Overview
+
+For this challenge, I added the parsing logic needed to recognize the ternary conditional operator (`?:`) in Lox. This operator allows a conditional expression to have two possible results depending on whether the condition is true or false.
+
+For example:
+
+```lox
+true ? 10 : 20
+```
+
+The challenge focuses on parsing the expression correctly rather than generating the bytecode needed to execute it.
+
+## 1. Scanner Changes – scanner.h
+
+First, I would add two new token types so the scanner recognizes the question mark and colon.
+
+```c
+TOKEN_QUESTION,
+TOKEN_COLON,
+```
+
+## 2. Scanner Changes – scanner.c
+
+Next, I would update the scanner to return the correct tokens whenever it encounters `?` or `:`.
+
+```c
+case '?': return makeToken(TOKEN_QUESTION);
+case ':': return makeToken(TOKEN_COLON);
+```
+
+## 3. Adding Conditional Precedence – compiler.c
+
+I would add `PREC_CONDITIONAL` between assignment and logical OR in the precedence enum.
+
+```c
+typedef enum {
+  PREC_NONE,
+  PREC_ASSIGNMENT,
+  PREC_CONDITIONAL,
+  PREC_OR,
+  PREC_AND,
+  PREC_EQUALITY,
+  PREC_COMPARISON,
+  PREC_TERM,
+  PREC_FACTOR,
+  PREC_UNARY,
+  PREC_CALL,
+  PREC_PRIMARY
+} Precedence;
+```
+
+This allows the ternary operator to have its own precedence level without interfering with other operators.
+
+## 4. Conditional Parsing Function – compiler.c
+
+I would create a new parsing function called `conditional()`.
+
+```c
+static void conditional() {
+  parsePrecedence(PREC_CONDITIONAL);
+
+  consume(TOKEN_COLON,
+          "Expect ':' after then branch of conditional operator.");
+
+  parsePrecedence(PREC_ASSIGNMENT);
+}
+```
+
+The first call to `parsePrecedence()` parses the expression following the question mark. The `consume()` function makes sure a colon separates the two branches. Finally, the second call parses the expression following the colon.
+
+This function should be placed where `parsePrecedence()` has already been declared.
+
+## 5. Updating the Parse Rule Table – compiler.c
+
+The Pratt parser also needs rules for the two new tokens.
+
+```c
+[TOKEN_QUESTION] = {NULL, conditional, PREC_CONDITIONAL},
+[TOKEN_COLON]    = {NULL, NULL, PREC_NONE},
+```
+
+The question mark uses `conditional()` as its infix parsing function, while the colon acts as a separator.
+
+## 6. Example Expressions
+
+A simple conditional expression:
+
+```lox
+true ? 10 : 20
+```
+
+A nested conditional expression:
+
+```lox
+a ? b : c ? d : e
+```
+
+The nested expression should be grouped as:
+
+```lox
+a ? b : (c ? d : e)
+```
+
+This demonstrates how conditional expressions can be nested while maintaining the correct precedence and associativity.
+
+## 7. Explanation
+
+To support the ternary conditional operator in Lox, I would first update the scanner to recognize the question mark and colon as separate tokens. I would then add a new precedence level and register a parsing function for the question mark in the Pratt parser. The conditional parsing function would handle both expressions separated by the colon, making sure the operator follows the correct structure. I also considered nested conditional expressions, which should associate from right to left. Since the challenge only asks for parsing support, the solution focuses on recognizing the syntax rather than generating bytecode or executing the conditional expression. Overall, these changes demonstrate how the Pratt parser can be extended to support additional operators without redesigning the entire compiler.
+
+## Implementation Note
+
+These are proposed code changes for the parsing portion of the challenge. They have not been integrated into or tested with the complete clox compiler.
